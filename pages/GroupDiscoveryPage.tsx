@@ -6,7 +6,8 @@ import type { User, Group, Profile } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Modal for Creating a Group
-const CreateGroupModal = ({ user, onClose }: { user: User, onClose: () => void }) => {
+// FIX: Pass profile to use profile.uid, resolving a type error with user.uid
+const CreateGroupModal = ({ user, profile, onClose }: { user: User, profile: Profile, onClose: () => void }) => {
     const [name, setName] = useState('');
     const [isPrivate, setIsPrivate] = useState(false);
     const [password, setPassword] = useState('');
@@ -22,8 +23,9 @@ const CreateGroupModal = ({ user, onClose }: { user: User, onClose: () => void }
             name,
             isPrivate,
             password: isPrivate ? password : null,
-            ownerId: user.uid,
-            members: [user.uid],
+            // FIX: Use profile.uid instead of user.uid to avoid type issue.
+            ownerId: profile.uid,
+            members: [profile.uid],
             iconUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${name}`,
         });
 
@@ -88,11 +90,21 @@ const GroupDiscoveryPage: React.FC<{ user: User, profile: Profile }> = ({ user, 
         });
         navigate(`/group/${group.id}`);
     };
+    
+    const handleLogout = async () => {
+        if (auth.currentUser) {
+            await db.collection('user_status').doc(auth.currentUser.uid).set({
+                status: 'offline',
+                last_changed: firebase.firestore.FieldValue.serverTimestamp(),
+            });
+        }
+        auth.signOut();
+    };
 
     return (
         <div className="min-h-screen bg-[#313338] text-white p-8">
             <AnimatePresence>
-                {showCreateModal && <CreateGroupModal user={user} onClose={() => setShowCreateModal(false)} />}
+                {showCreateModal && <CreateGroupModal user={user} profile={profile} onClose={() => setShowCreateModal(false)} />}
             </AnimatePresence>
             <header className="flex justify-between items-center mb-8">
                 <div>
@@ -101,7 +113,7 @@ const GroupDiscoveryPage: React.FC<{ user: User, profile: Profile }> = ({ user, 
                 </div>
                  <div className="flex items-center space-x-4">
                     <span className="font-semibold">Welcome, {profile.displayName}</span>
-                    <button onClick={() => auth.signOut()} className="bg-red-600 px-4 py-2 rounded-md text-sm">Logout</button>
+                    <button onClick={handleLogout} className="bg-red-600 px-4 py-2 rounded-md text-sm">Logout</button>
                     <button onClick={() => setShowCreateModal(true)} className="bg-[#5865F2] px-4 py-2 rounded-md font-semibold">
                         + Create Group
                     </button>

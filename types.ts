@@ -45,3 +45,8 @@ export interface Room {
   name: string;
   icon: React.ReactNode;
 }
+
+export interface UserStatus {
+    status: 'online' | 'offline';
+    last_changed: Timestamp;
+}

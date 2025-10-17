@@ -1,7 +1,9 @@
 import React from 'react';
-import { auth } from '../firebase';
+import { auth, db } from '../firebase';
+import firebase from 'firebase/compat/app';
 import { motion } from 'framer-motion';
 import type { User, Profile, Group, Channel } from '../types';
+import { useUserStatus } from '../hooks/useUserStatus';
 
 interface ChannelListProps {
   user: User;
@@ -13,17 +15,32 @@ interface ChannelListProps {
 }
 
 const ChannelList: React.FC<ChannelListProps> = ({ user, profile, group, channels, currentChannel, setCurrentChannel }) => {
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (auth.currentUser) {
+        await db.collection('user_status').doc(auth.currentUser.uid).set({
+            status: 'offline',
+            last_changed: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+    }
     auth.signOut();
   };
 
-  const UserAvatar: React.FC<{ profile: Profile }> = ({ profile }) => (
-    <img
-      src={profile.photoURL}
-      alt={profile.displayName}
-      className="w-10 h-10 rounded-full"
-    />
-  );
+  const UserAvatar: React.FC<{ profile: Profile }> = ({ profile }) => {
+    const status = useUserStatus(profile.uid);
+    return (
+        <div className="relative flex-shrink-0">
+            <img
+              src={profile.photoURL}
+              alt={profile.displayName}
+              className="w-10 h-10 rounded-full"
+            />
+            <div 
+                className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#232428] ${status === 'online' ? 'bg-green-500' : 'bg-gray-500'}`}
+                title={status === 'online' ? 'Online' : 'Offline'}
+            />
+        </div>
+    );
+  };
 
   return (
     <div className="w-64 bg-[#2b2d31] flex flex-col">

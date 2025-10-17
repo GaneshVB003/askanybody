@@ -1,9 +1,10 @@
 
 import React from 'react';
-// import { signOut } from 'firebase/auth';
-import { auth } from '../firebase';
+import firebase from 'firebase/compat/app';
+import { auth, db } from '../firebase';
 import { motion } from 'framer-motion';
 import type { User, Room } from '../types';
+import { useUserStatus } from '../hooks/useUserStatus';
 
 interface SidebarProps {
   user: User;
@@ -13,18 +14,32 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ user, rooms, currentRoom, setCurrentRoom }) => {
-  const handleLogout = () => {
-    // FIX: Use v8 auth.signOut() method
+  const handleLogout = async () => {
+    if (auth.currentUser) {
+        await db.collection('user_status').doc(auth.currentUser.uid).set({
+            status: 'offline',
+            last_changed: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+    }
     auth.signOut();
   };
 
-  const UserAvatar: React.FC<{ user: User }> = ({ user }) => (
-    <img
-      src={user.photoURL || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${user.uid}`}
-      alt={user.displayName || 'User Avatar'}
-      className="w-10 h-10 rounded-full"
-    />
-  );
+  const UserAvatar: React.FC<{ user: User }> = ({ user }) => {
+    const status = useUserStatus(user.uid);
+    return (
+        <div className="relative">
+            <img
+                src={user.photoURL || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${user.uid}`}
+                alt={user.displayName || 'User Avatar'}
+                className="w-10 h-10 rounded-full"
+            />
+            <div 
+                className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#232428] ${status === 'online' ? 'bg-green-500' : 'bg-gray-500'}`} 
+                title={status === 'online' ? 'Online' : 'Offline'}
+            />
+        </div>
+    );
+  };
 
   return (
     <div className="w-64 bg-[#1E1F22] flex flex-col p-3 space-y-4">
