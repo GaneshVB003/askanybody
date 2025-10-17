@@ -1,0 +1,7 @@
+{
+  "name": "Gemini Discord Clone MVP",
+  "description": "A Discord-style AI chat web app using React, Firebase, and Gemini. Users can join rooms, chat in real-time, upload images, and trigger AI replies.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
